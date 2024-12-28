@@ -1,86 +1,94 @@
 const express = require('express');
 const router = express.Router();
 
-const data = [
-  {id: 1, title: 'Finalize project', order: 1, completed: false, createdOn: new Date()},
-  {id: 2, title: 'Book ticket to London', order: 2, completed: false, createdOn: new Date()},
-  {id: 3, title: 'Finish last article', order: 3, completed: false, createdOn: new Date()},
-  {id: 4, title: 'Get a new t-shirt', order: 4, completed: false, createdOn: new Date()},
-  {id: 5, title: 'Create dinner reservation', order: 5, completed: false, createdOn: new Date()},
-];
+let notes = [];
+let nextId = 1;
 
-router.get('/', function (req, res) {
-  res.status(200).json(data);
-});
-
-router.get('/:id', function (req, res) {
-  let found = data.find(function (item) {
-    return item.id === parseInt(req.params.id);
-  });
-
-  if (found) {
-    res.status(200).json(found);
+//GET /notes --> выбрать и вернуть все заметки в формате JSON (массив объектов)
+router.get('/notes', function (req, res) {
+  if (notes.length > 0) {
+    res.status(200).json(notes);
   } else {
     res.sendStatus(404);
   }
 });
 
-router.post('/', function (req, res) {
-  let itemIds = data.map(item => item.id);
-  let orderNums = data.map(item => item.order);
+//GET /note/:id -->выбрать и вернуть заметку с соответствующим id в формате JSON
+router.get('/note/:id', function (req, res) {
+  const noteId = parseInt(req.params.id);
+  const foundNote = notes.find(note => note.id === noteId);
 
-  let newId = itemIds.length > 0 ? Math.max.apply(Math, itemIds) + 1 : 1;
-  let newOrderNum = orderNums.length > 0 ? Math.max.apply(Math, orderNums) + 1 : 1;
+  if (foundNote) {
+    res.status(200).json(foundNote);
+  } else {
+    res.sendStatus(404);
+  }
+});
 
-  let newItem = {
-    id: newId,
-    title: req.body.title,
-    order: newOrderNum,
-    completed: false,
-    createdOn: new Date()
+//GET /note/read/:title -->выбрать и вернуть заметку с соответствующим названием в формате JSON
+router.get('/note/read/:title', function (req, res) {
+  const noteTitle = req.params.title;
+  const foundNote = notes.find(note => note.title === noteTitle);
+
+  if (foundNote) {
+    res.status(200).json(foundNote);
+  } else {
+    res.sendStatus(404);
+  }
+});
+
+//POST /note/ --> создать и вернуть заметку в формате JSON
+router.post('/note/', function (req, res) {
+  const { title, content } = req.body;
+
+  if (!title || !content) {
+    return res.sendStatus(409);
+  }
+
+  const now = new Date();
+  const newNote = {
+    id: nextId++,
+    title: title,
+    content: content,
+    created: now,
+    changed: now
   };
 
-  data.push(newItem);
-
-  res.status(201).json(newItem);
+  notes.push(newNote);
+  res.status(201).json(newNote);
 });
 
-router.put('/:id', function (req, res) {
-  let found = data.find(function (item) {
-    return item.id === parseInt(req.params.id);
-  });
+//DELETE /note/:id --> удалить заметку с соответствующим id из базы данных
+router.delete('/note/:id', function (req, res) {
+  const noteIdToDelete = parseInt(req.params.id);
+  const initialLength = notes.length;
+  notes = notes.filter(note => note.id !== noteIdToDelete);
 
-  if (found) {
-    let updated = {
-      id: found.id,
-      title: req.body.title,
-      order: req.body.order,
-      completed: req.body.completed,
-      createdOn: req.body.createdOn
-    };
-
-    let targetIndex = data.indexOf(found);
-
-    data.splice(targetIndex, 1, updated);
-
+  if (notes.length < initialLength) {
     res.sendStatus(204);
   } else {
-    res.sendStatus(404);
+    res.sendStatus(409);
   }
 });
 
-router.delete('/:id', function (req, res) {
-  let found = data.find(function (item) {
-    return item.id === parseInt(req.params.id);
-  });
+//PUT /note/:id --> изменить заметку с соответствующим id
+router.put('/note/:id', function (req, res) {
+  const noteIdToUpdate = parseInt(req.params.id);
+  const { title, content } = req.body;
+  const foundNoteIndex = notes.findIndex(note => note.id === noteIdToUpdate);
 
-  if (found) {
-    let targetIndex = data.indexOf(found);
-
-    data.splice(targetIndex, 1);
+  if (foundNoteIndex !== -1) {
+    if (title !== undefined) {
+      notes[foundNoteIndex].title = title;
+    }
+    if (content !== undefined) {
+      notes[foundNoteIndex].content = content;
+    }
+    notes[foundNoteIndex].changed = new Date();
+    res.sendStatus(204);
+  } else {
+    res.sendStatus(409);
   }
-
-  res.sendStatus(204);
 });
 
 module.exports = router;
