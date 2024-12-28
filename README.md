@@ -1,8 +1,5 @@
-# A simple experimental Todo Web API with Node.js And Express.js
-
-This is an experimental Todo Web API. There is no any database system behind it. It holds the item data in memory. You can use it in your experimental projects.
-
-Блокнот для заметок на основе форка https://github.com/metehansenol/todo-api-with-node-express/tree/develop
+# Блокнот для заметок на Node.js и Express.js
+На основе форка https://github.com/metehansenol/todo-api-with-node-express/tree/develop
 
 Пример работы после запуска сервера командой 
 >node server.js 
