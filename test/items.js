@@ -1,69 +1,106 @@
-const chai=require("chai");
-const chaiHttp=require("chai-http");
-const server=require("../server.js");
-const should=chai.should();
+
+const chai = require("chai");
+const chaiHttp = require("chai-http");
+const express = require("express");
+const app = express();
+const notesRouter = require("../path/to/your/notesRouter"); 
 
 chai.use(chaiHttp);
+chai.should();
 
-describe("Items CRUD Tests",()=>{
-    it("should get all items",()=>{  
+app.use(express.json());
+app.use(notesRouter);
 
-        chai.request(server).get("/items").end((err,res)=>{
-            res.should.have.status(200);
-            res.body.should.be.a("array");
-        });
+describe("Notes API Tests", () => {
+    let noteId;
+
+    it("should get all notes", (done) => {
+        chai.request(app)
+            .get("/notes")
+            .end((err, res) => {
+                res.should.have.status(404);
+                done();
+            });
+    });
+
+    it("should add a new note", (done) => {
+        const newNote = {
+            title: "Test Note",
+            content: "This is a test note."
+        };
+
+        chai.request(app)
+            .post("/note/")
+            .send(newNote)
+            .end((err, res) => {
+                res.should.have.status(201);
+                res.body.should.have.property("id");
+                res.body.title.should.equal(newNote.title);
+                noteId = res.body.id; 
+                done();
+            });
+    });
+
+    it("should get a note by ID", (done) => {
+        chai.request(app)
+            .get(`/note/${noteId}`)
+            .end((err, res) => {
+                res.should.have.status(200);
+                res.body.should.have.property("id").eql(noteId);
+                done();
+            });
+    });
+
+    it("should not find a note by ID", (done) => {
+        chai.request(app)
+            .get("/note/9999")
+            .end((err, res) => {
+                res.should.have.status(404);
+                done();
+            });
+    });
+
+    it("should update a note", (done) => {
+        const updatedNote = {
+            title: "Updated Test Note",
+            content: "This note has been updated."
+        };
         
+        chai.request(app)
+            .put(`/note/${noteId}`)
+            .send(updatedNote)
+            .end((err, res) => {
+                res.should.have.status(204);
+                done();
+            });
     });
 
-    it("should get an item with param",()=>{
-        chai.request(server).get("/items/2").end((err,res)=>{
-            res.should.have.status(200);
-            res.body.should.be.a("object");
-        });
+    it("should get the updated note by ID", (done) => {
+        chai.request(app)
+            .get(`/note/${noteId}`)
+            .end((err, res) => {
+                res.should.have.status(200);
+                res.body.title.should.equal("Updated Test Note");
+                done();
+            });
     });
 
-    it("should can't find any product from list",()=>{
-        chai.request(server).get("/items/9999").end((err,res)=>{
-            res.should.have.status(404);
-        });
+    it("should delete a note", (done) => {
+        chai.request(app)
+            .delete(`/note/${noteId}`)
+            .end((err, res) => {
+                res.should.have.status(204);
+                done();
+            });
     });
 
-    it("should add a new item",()=>{
-        const item={
-            title:"Have a good trip"
-        };
-        chai.request(server).post("/items/").send(item).end((err,res)=>{
-            res.should.have.status(201);
-            chai.expect(res.body.title).to.equal("Have a good trip");
-        });
+    it("should not find the deleted note", (done) => {
+        chai.request(app)
+            .get(`/note/${noteId}`)
+            .end((err, res) => {
+                res.should.have.status(404);
+                done();
+            });
     });
-
-    it("should update first item",()=>{
-        const item={
-            title:"Cycling tour",
-            order:5,
-            completed:true
-        };
-        chai.request(server).put("/items/1").send(item).end((err,res)=>{
-            res.should.have.status(204);
-        });
-    });
-
-    it("should can't find and updated an item",()=>{
-        const item={
-            title:"Cycling tour",
-            order:5,
-            completed:true
-        };
-        chai.request(server).put("/items/9999").send(item).end((err,res)=>{
-            res.should.have.status(404);
-        });        
-    });
-
-    it("should delete an item",()=>{
-        chai.request(server).delete("/items/1").end((err,res)=>{
-            res.should.have.status(204);
-        });
-    });
-    
 });
+
